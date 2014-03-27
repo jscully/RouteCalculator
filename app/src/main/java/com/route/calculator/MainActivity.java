@@ -3,7 +3,6 @@ package com.route.calculator;
 import android.app.FragmentManager;
 import android.content.res.Configuration;
 import android.support.v4.app.ActionBarDrawerToggle;
-import android.support.v4.app.Fragment;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -15,12 +14,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
-
-import com.google.android.gms.maps.MapFragment;
-
+import android.widget.Toast;
 import java.util.ArrayList;
 
-import static com.route.calculator.R.*;
 
 public class MainActivity extends ActionBarActivity {
     private String[] mTitles;
@@ -37,7 +33,7 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(layout.activity_main);
+        setContentView(R.layout.activity_main);
 
         mTitle = mDrawerTitle = getTitle();
         titles = getResources().getStringArray(R.array.menu_items);
@@ -90,9 +86,9 @@ public class MainActivity extends ActionBarActivity {
     public void populateNavigationItems(){
         navDrawerItems = new ArrayList<NavigationItem>();
         // Home
-        navDrawerItems.add(new NavigationItem(titles[0], drawable.ic_drawer));
+        navDrawerItems.add(new NavigationItem(titles[0], R.drawable.ic_drawer));
         // Map
-        navDrawerItems.add(new NavigationItem(titles[1], drawable.ic_drawer));
+        navDrawerItems.add(new NavigationItem(titles[1], R.drawable.ic_drawer));
     }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -111,8 +107,8 @@ public class MainActivity extends ActionBarActivity {
         }
         // Handle action buttons
         switch(item.getItemId()) {
-            case R.id.action_websearch:
-
+            case R.id.action_settings:
+                Toast.makeText(this, "Sent from activity", Toast.LENGTH_SHORT).show();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

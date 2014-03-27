@@ -7,6 +7,10 @@
     <string name="drawer_open">Open navigation drawer</string>
     <string name="drawer_close">Close navigation drawer</string>
     <string name="action_search">Search</string>
+    <string name="action_marker_title">Show Markers</string>
+    <string name="action_save_title">Save</string>
+    <string name="action_undo_title">Undo</string>
+    <string name="action_clear_title">Clear</string>
 
     <string-array name="menu_items">
         <item>Home</item>

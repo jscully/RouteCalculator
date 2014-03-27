@@ -10,10 +10,12 @@
         android:name="com.google.android.gms.maps.MapFragment"
         android:id="@+id/map" />
 
-    <Button
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/calculate_button"
-        android:text="calculate route"/>
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:textSize="28dp"
+        android:id="@+id/distance_view"/>
 
 </RelativeLayout>

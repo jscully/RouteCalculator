@@ -1,16 +1,20 @@
 package com.route.calculator;
 
-
+import android.app.ActionBar;
 import android.app.Fragment;
-import android.app.FragmentManager;
 import android.graphics.Color;
-import android.graphics.Point;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.InflateException;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.view.Window;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.GoogleMap;
@@ -21,11 +25,12 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
-import models.MarkerRoute;
+import models.MarkerPoint;
 import routes.PointToPointRoute;
 
 /**
@@ -33,23 +38,18 @@ import routes.PointToPointRoute;
  */
 public class MapRouteFragment extends Fragment {
     private GoogleMap map;
-    private Button calculate;
     private PointToPointRoute route;
     private double distance;
+    private TextView distanceView;
     private PolylineOptions options;
     private List<Polyline> polylines = new ArrayList<Polyline>();
-
-    public MapRouteFragment(){
-
-    }
+    public static View view;
+    //boolean toggle : toggles the markers visible state
+    private boolean toggle = false;
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        route = new PointToPointRoute();
-        options = new PolylineOptions();
-        options.width(5);
-        options.color(Color.RED);
 
         //Get a reference to the map once it is loaded
         map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
@@ -68,26 +68,15 @@ public class MapRouteFragment extends Fragment {
                     route.setMarkerVisibility();
                 } else {
                     Marker marker = map.addMarker(newMarker);
-                    route.getLastElement().getMarker().setVisible(false);
+                    route.getLastElement().getMarker().setVisible(toggle);
                     route.add(latLng, marker);
                     route.setMarkerVisibility();
                 }
                 drawRoute();
             }
         });
-
-        //Get a reference to the calculate button and attach a listener
-        calculate = (Button) getView().findViewById(R.id.calculate_button);
-        calculate.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //if there are more than one set of points on the map calculate.
-                if(route != null){
-                    distance = route.calculateTotalDistance();
-                    Toast.makeText(getActivity(), "Distance: " + distance, Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
+        distanceView = (TextView) getActivity().findViewById(R.id.distance_view);
+        setHasOptionsMenu(true);
     }
 
     /**
@@ -100,31 +89,42 @@ public class MapRouteFragment extends Fragment {
             line.remove();
         }
         //redraw all polylines from points LinkedList
-        for(MarkerRoute markerRoute : route.getPoints()){
+        for(MarkerPoint markerRoute : route.getPoints()){
             localOptions.add(new LatLng(markerRoute.getLat(), markerRoute.getLng()));
             Polyline line = map.addPolyline(localOptions);
             polylines.add(line);
+            line.setColor(Color.GREEN);
             line.setGeodesic(true);
             line.setVisible(true);
         }
+        //get the distance, and set the distance view to show distance
+        distance = route.calculateTotalDistance();
+        distance = round(distance / 1000, 2);
+        distanceView.setText(Double.toString(distance) + "km");
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.map_fragment, container, false);
+        if (view != null) {
+            ViewGroup parent = (ViewGroup) view.getParent();
+            if (parent != null)
+                parent.removeView(view);
+        }
+        try {
+            view = inflater.inflate(R.layout.map_fragment, container, false);
+        } catch (InflateException e) {
+
+        }
+        return view;
     }
 
     @Override
-    public void onDestroyView() {
-
-        FragmentManager fm = getFragmentManager();
-
-        Fragment xmlFragment = fm.findFragmentById(R.id.map);
-        if (xmlFragment != null) {
-            fm.beginTransaction().remove(xmlFragment).commit();
-        }
-
-        super.onDestroyView();
+    public void onResume() {
+        super.onResume();
+        setRetainInstance(true);
+        route = new PointToPointRoute();
+        options = new PolylineOptions();
+        options.width(5);
     }
 
     public void setMarkerListeners(GoogleMap map){
@@ -143,7 +143,7 @@ public class MapRouteFragment extends Fragment {
             @Override
             public void onMarkerDragEnd(Marker marker) {
                 //TODO - What to do here. When the marker has moved, update the points LinkedList with the new long + lat
-                for(MarkerRoute currentMarker : route.getPoints()){
+                for(MarkerPoint currentMarker : route.getPoints()){
                     if(currentMarker.getMarker().equals(toBeUpdated)){
                         //Update the point in the LinkedList MarkerPoint that has changed
                         currentMarker.setLat(marker.getPosition().latitude);
@@ -156,4 +156,96 @@ public class MapRouteFragment extends Fragment {
             }
         });
     }
+
+    @Override
+    public void onCreateOptionsMenu(
+            Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.map_action_bar, menu);
+
+        getActivity().getActionBar().setTitle("");
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action buttons
+        switch(item.getItemId()) {
+            case R.id.action_search:
+                Toast.makeText(getActivity(), "Sent from fragment", Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.action_undo:
+                undo();
+                return true;
+            case R.id.action_marker:
+                if(route.getPoints().size() > 2){
+                   toggle = !toggle;
+                   route.toggleMarkers(toggle);
+                }
+                return true;
+            case R.id.action_clear:
+                if(route.getPoints().size() >= 1){
+                    for(MarkerPoint m : route.getPoints()){
+                        m.getMarker().remove();
+                    }
+                    route.getPoints().clear();
+                    for(Polyline p : polylines){
+                        p.remove();
+                    }
+                    polylines.clear();
+                    distanceView.setText("0.0km");
+                }
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void undo(){
+        //if we have a route and some points perform undo
+        if(!route.getPoints().isEmpty()){
+
+                //Now I want to pop the last point from routes
+                MarkerPoint mk = route.getLastElement();
+                //remove the last marker
+                mk.getMarker().remove();
+                route.getPoints().remove(mk);
+                if(route.getPoints().size() > 1){
+                    Log.d("TAG", "setting marker visibility");
+                    route.setMarkerVisibility();
+                }
+                drawRoute();
+        }
+        else{
+            Toast.makeText(getActivity(), "No markers added", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Toast.makeText(getActivity(), "onPause()", Toast.LENGTH_SHORT).show();
+        //I want to remove everything from the map.
+        for(Polyline p : polylines){
+            p.remove();
+        }
+        polylines.clear();
+        for(MarkerPoint m : route.getPoints()){
+            m.getMarker().remove();
+        }
+        route.getPoints().clear();
+        distanceView.setText("0.0");
+    }
+
+    /**
+     * Method to round double to two decimal places
+     * @param value
+     * @param places
+     * @return
+     */
+    public static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = new BigDecimal(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
+    }
+
 }

@@ -6,12 +6,12 @@ import com.google.android.gms.maps.model.Marker;
 /**
  * Created by joseph on 19/03/14.
  */
-public class MarkerRoute {
+public class MarkerPoint {
     private double lat;
     private double lng;
     private Marker marker;
 
-    public MarkerRoute(LatLng l, Marker marker){
+    public MarkerPoint(LatLng l, Marker marker){
         this.lat = l.latitude;
         this.lng = l.longitude;
         this.marker = marker;
@@ -19,7 +19,7 @@ public class MarkerRoute {
         this.marker.setDraggable(true);
     }
 
-    public MarkerRoute(double lat, double lng, Marker marker){
+    public MarkerPoint(double lat, double lng, Marker marker){
         this.lat = lat;
         this.lng = lng;
         this.marker = marker;
