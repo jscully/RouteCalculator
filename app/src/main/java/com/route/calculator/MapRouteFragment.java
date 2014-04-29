@@ -1,9 +1,17 @@
 package com.route.calculator;
 
 import android.app.ActionBar;
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Fragment;
+import android.app.SearchManager;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.InflateException;
@@ -14,21 +22,27 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.widget.EditText;
+import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import models.MarkerPoint;
 import routes.PointToPointRoute;
@@ -37,6 +51,7 @@ import routes.PointToPointRoute;
  * Created by joseph on 16/03/14.
  */
 public class MapRouteFragment extends Fragment {
+    static final String TAG = "TAG";
     private GoogleMap map;
     private PointToPointRoute route;
     private double distance;
@@ -125,6 +140,7 @@ public class MapRouteFragment extends Fragment {
         route = new PointToPointRoute();
         options = new PolylineOptions();
         options.width(5);
+        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);     //  Fixed Portrait orientation
     }
 
     public void setMarkerListeners(GoogleMap map){
@@ -135,8 +151,7 @@ public class MapRouteFragment extends Fragment {
                 toBeUpdated = marker;
             }
 
-            @Override
-            public void onMarkerDrag(Marker marker) {
+            @Override             public void onMarkerDrag(Marker marker) {
 
             }
 
@@ -162,7 +177,6 @@ public class MapRouteFragment extends Fragment {
             Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.map_action_bar, menu);
 
-        getActivity().getActionBar().setTitle("");
     }
 
     @Override
@@ -170,7 +184,26 @@ public class MapRouteFragment extends Fragment {
         // Handle action buttons
         switch(item.getItemId()) {
             case R.id.action_search:
-                Toast.makeText(getActivity(), "Sent from fragment", Toast.LENGTH_SHORT).show();
+                LayoutInflater layoutInflater = LayoutInflater.from(getActivity());
+                View promptView = layoutInflater.inflate(R.layout.search_dialog, null);
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getActivity());
+                alertDialogBuilder.setView(promptView);
+                final EditText input = (EditText) promptView.findViewById(R.id.userInput);
+                alertDialogBuilder
+                        .setCancelable(false)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                new LocationSearchAsyncTask(map, getActivity()).execute(input.getText().toString());
+                            }
+                        })
+                        .setNegativeButton("Cancel",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog,	int id) {
+                                        dialog.cancel();
+                                    }
+                                });
+                AlertDialog alertD = alertDialogBuilder.create();
+                alertD.show();
                 return true;
             case R.id.action_undo:
                 undo();
@@ -221,7 +254,6 @@ public class MapRouteFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        Toast.makeText(getActivity(), "onPause()", Toast.LENGTH_SHORT).show();
         //I want to remove everything from the map.
         for(Polyline p : polylines){
             p.remove();
@@ -231,6 +263,9 @@ public class MapRouteFragment extends Fragment {
             m.getMarker().remove();
         }
         route.getPoints().clear();
+        //clear the map and call the garbage collector
+        map.clear();
+        System.gc();
         distanceView.setText("0.0");
     }
 

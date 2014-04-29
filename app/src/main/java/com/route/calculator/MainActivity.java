@@ -135,6 +135,8 @@ public class MainActivity extends ActionBarActivity {
         super.onResume();
     }
 
+
+
     /* The click listner for ListView in the navigation drawer */
     private class DrawerItemClickListener implements ListView.OnItemClickListener {
         @Override
