@@ -25,6 +25,13 @@ public class MarkerPoint {
         this.marker = marker;
     }
 
+    //Method to set this class instance to null along with Reference to marker
+    //calls marker remove and sets to null
+    public void removeInstance(){
+        marker.remove();
+        marker = null;
+    }
+
     public double getLat() {
         return lat;
     }

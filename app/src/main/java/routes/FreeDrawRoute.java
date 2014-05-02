@@ -6,13 +6,9 @@ import android.util.Log;
 import models.MarkerPoint;
 
 /**
- * Created by joseph on 16/03/14.
+ * Created by joseph on 02/05/14.
  */
-public class PointToPointRoute extends Route {
-
-    public PointToPointRoute(){
-
-    }
+public class FreeDrawRoute extends Route {
 
     @Override
     public double calculateTotalDistance() {

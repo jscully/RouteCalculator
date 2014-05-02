@@ -54,6 +54,7 @@ public class MainActivity extends ActionBarActivity {
         // enable ActionBar app icon to behave as action to toggle nav drawer
         getActionBar().setDisplayHomeAsUpEnabled(true);
 
+
         // ActionBarDrawerToggle ties together the the proper interactions
         // between the sliding drawer and the action bar app icon
         mDrawerToggle = new ActionBarDrawerToggle(
@@ -89,6 +90,8 @@ public class MainActivity extends ActionBarActivity {
         navDrawerItems.add(new NavigationItem(titles[0], R.drawable.ic_drawer));
         // Map
         navDrawerItems.add(new NavigationItem(titles[1], R.drawable.ic_drawer));
+        //Free Draw Map
+        navDrawerItems.add(new NavigationItem(titles[2], R.drawable.ic_drawer));
     }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -149,7 +152,11 @@ public class MainActivity extends ActionBarActivity {
                     Log.d("TAG", "Home");
                     break;
                 case 1:
-                    fragment = new MapRouteFragment();
+                    fragment = new PointToPointFragment();
+                    Log.d("TAG", "Maps");
+                    break;
+                case 2:
+                    fragment = new FreeDrawFragment();
                     Log.d("TAG", "Maps");
                     break;
                 default:

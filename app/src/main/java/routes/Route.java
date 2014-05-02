@@ -3,7 +3,7 @@ package routes;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 
 import models.MarkerPoint;
 
@@ -12,42 +12,30 @@ import models.MarkerPoint;
  */
 public abstract class Route {
     //LinkedList of Point objects. Point has a x and y coordinate (int)
-    protected LinkedList<MarkerPoint> points = new LinkedList<MarkerPoint>();
+    protected ArrayList<MarkerPoint> points = new ArrayList<MarkerPoint>();
     protected double distance;
 
-    public Route(){
+    public Route() {
         distance = 0;
     }
 
     public abstract double calculateTotalDistance();
 
     //Return the points linkedList
-    public LinkedList<MarkerPoint> getPoints(){
+    public ArrayList<MarkerPoint> getPoints() {
         return points;
     }
 
-    public double getDistance(){
-        //returns the current route distance
-        return distance;
-    }
-
-    public void add(LatLng latLng, Marker marker){
+    public void add(LatLng latLng, Marker marker) {
         points.add(new MarkerPoint(latLng, marker));
     }
 
 
-    //TODO - Create method to return boolean ifFirst()
-    public MarkerPoint getLastElement(){
-         return points.getLast();
-    }
-
-    public boolean isFirst(LatLng l){
-        if(points.indexOf(l) == 0){
-            return true;
-        }
-        else{
-            return false;
+    public MarkerPoint getLastElement() {
+        if (!points.isEmpty()) {
+            return points.get(points.size() - 1);
+        } else {
+            return null;
         }
     }
-
 }

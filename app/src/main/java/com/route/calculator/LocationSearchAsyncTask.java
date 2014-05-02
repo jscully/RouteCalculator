@@ -1,5 +1,6 @@
 package com.route.calculator;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.location.Address;
 import android.location.Geocoder;
@@ -20,21 +21,22 @@ import java.util.Locale;
  * Created by joseph on 28/04/14.
  */
 public class LocationSearchAsyncTask extends AsyncTask<String, Integer, Address> {
-    //Reference held to the map so the map can be updated
-    private GoogleMap map = null;
+    private ProgressDialog progDialog;
     private Context context = null;
+    private GoogleMap map = null;
 
-    public LocationSearchAsyncTask(GoogleMap m, Context ctx) {
+    public LocationSearchAsyncTask(GoogleMap map , Context ctx) {
         super();
-        if (m != null) {
-            map = m;
-            context = ctx;
-        }
+        this.map = map;
+        context = ctx;
+        progDialog = new ProgressDialog(context);
     }
 
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
+        progDialog.setMessage("Searching...");
+        progDialog.show();
     }
 
     @Override
@@ -59,11 +61,11 @@ public class LocationSearchAsyncTask extends AsyncTask<String, Integer, Address>
 
     @Override
     protected void onPostExecute(Address address) {
-        if (address != null) {
-            moveMap(address);
-        } else {
-            Toast.makeText(context, "Sorry no place could be found", Toast.LENGTH_LONG).show();
+        if(progDialog.isShowing()){
+            progDialog.dismiss();
         }
+        moveMap(address);
+        map = null;
     }
 
     @Override
@@ -71,18 +73,26 @@ public class LocationSearchAsyncTask extends AsyncTask<String, Integer, Address>
         super.onProgressUpdate(values);
     }
 
+    /**
+     * Check internet connectivity
+     * @return
+     */
+    public boolean isNetworkAvailable() {
+        return ((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo() != null;
+    }
+
+    /**
+     * Method to to move map to new address.
+     * @param address
+     */
     private void moveMap(Address address) {
         CameraPosition newPlace =
                 new CameraPosition.Builder().target(
                         new LatLng(address.getLatitude(), address.getLongitude())
                 ).zoom(15.5f)
                         .bearing(8)
-                        .tilt(25)
+                        .tilt(0)
                         .build();
         map.animateCamera(CameraUpdateFactory.newCameraPosition(newPlace));
-    }
-
-    public boolean isNetworkAvailable() {
-        return ((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo() != null;
     }
 }
