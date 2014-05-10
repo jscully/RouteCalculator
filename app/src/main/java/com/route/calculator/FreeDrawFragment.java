@@ -60,35 +60,17 @@ public class FreeDrawFragment extends Fragment {
     private boolean mapMovable = true;
     private FrameLayout frameLayout;
     private Projection projection;
+    private String previousEvent = null; //Variable used for ontouch event, to eliminate false event up calls
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         //Get a reference to the map once it is loaded
         map = ((MapFragment) getFragmentManager().findFragmentById(R.id.freedraw_map)).getMap();
-
+        getActivity().getActionBar().setTitle("Free Draw");
         //set up the marker listeners
         setMarkerListeners(map);
 
-        //onclick listener for the map
-        map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-            @Override
-            public void onMapClick(LatLng latLng) {
-                Log.d(TAG, "Map click");
-                MarkerOptions newMarker = new MarkerOptions().position(latLng);
-                if (route.getPoints().isEmpty()) { //if this is the first click add the point with a marker
-                    Marker marker = map.addMarker(newMarker);
-                    route.add(latLng, marker);
-                    route.setMarkerVisibility();
-                } else {
-                    Marker marker = map.addMarker(newMarker);
-                    route.getLastElement().getMarker().setVisible(toggle);
-                    route.add(latLng, marker);
-                    route.setMarkerVisibility();
-                }
-                drawRoute();
-            }
-        });
         distanceView = (TextView) getActivity().findViewById(R.id.free_draw_distance_view);
         frameLayout = (FrameLayout) getActivity().findViewById(R.id.fram_map);
         mapButton = (Button) getActivity().findViewById(R.id.btn_draw_State);
@@ -96,9 +78,14 @@ public class FreeDrawFragment extends Fragment {
             @Override
             public void onClick(View view) {
                 mapMovable = !mapMovable;
-                Log.d(TAG, "Map button : " + mapMovable);
+                if (mapMovable) {
+                    mapButton.setText("Move Map");
+                } else {
+                    mapButton.setText("Draw Route");
+                }
             }
         });
+
         frameLayout.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -108,23 +95,32 @@ public class FreeDrawFragment extends Fragment {
 
                     int x_co = Math.round(x);
                     int y_co = Math.round(y);
-
-                    projection = map.getProjection();
-                    Point x_y_points = new Point(x_co, y_co);
-                    LatLng latLng = map.getProjection().fromScreenLocation(x_y_points);
                     int eventaction = event.getAction();
-                    MarkerOptions newMarker = new MarkerOptions().position(latLng);
-                    Marker marker = map.addMarker(newMarker);
+                    // TODO - final point gets added twice, possible check y_co and y_co before
+
                     switch (eventaction) {
                         case MotionEvent.ACTION_DOWN:
                             // finger touches the screen
-                            route.add(latLng, marker);
+                            if (previousEvent == null) {
+                                createPointOnMap(x_co, y_co);
+                            }
+                            Log.d(TAG, "ACTION DOWN : " + previousEvent);
+                            previousEvent = "down";
                         case MotionEvent.ACTION_MOVE:
                             // finger moves on the screen
-                            route.add(latLng, marker);
+                                createPointOnMap(x_co, y_co);
+                            previousEvent = "move";
+                            Log.d(TAG, "ACTION MOVE : " + previousEvent);
+                            Log.d(TAG, "" + x_co);
                         case MotionEvent.ACTION_UP:
                             // finger leaves the screen
-                            drawRoute();
+                            if (previousEvent.equals("up")) {
+                                createPointOnMap(x_co, y_co);
+                                Log.d(TAG, "" + x_co);
+                                drawRoute();
+                            }
+                            previousEvent = "up";
+                            Log.d(TAG, "ACTION UP : " + previousEvent);
                             break;
                     }
                 }
@@ -132,6 +128,15 @@ public class FreeDrawFragment extends Fragment {
             }
         });
         setHasOptionsMenu(true);
+    }
+
+    private void createPointOnMap(int x_co, int y_co) {
+        projection = map.getProjection();
+        Point x_y_points = new Point(x_co, y_co);
+        LatLng latLng = map.getProjection().fromScreenLocation(x_y_points);
+        MarkerOptions newMarker = new MarkerOptions().position(latLng);
+        Marker marker = map.addMarker(newMarker);
+        route.add(latLng, marker);
     }
 
     /**
@@ -147,7 +152,7 @@ public class FreeDrawFragment extends Fragment {
             polylines.clear();
         }
 
-        //redraw all polylines from points LinkedList
+        //redraw all polylines from points ArrayList
         for (MarkerPoint markerRoute : route.getPoints()) {
             localOptions.add(new LatLng(markerRoute.getLat(), markerRoute.getLng()));
             Polyline line = map.addPolyline(localOptions);
@@ -156,7 +161,8 @@ public class FreeDrawFragment extends Fragment {
             line.setGeodesic(true);
             line.setVisible(true);
         }
-        // TODO - Implement draw feature
+
+        route.setMarkerVisibility(toggle);
         //get the distance, and set the distance view to show distance
         distance = route.calculateTotalDistance();
         distance = round(distance / 1000, 2);
@@ -256,7 +262,7 @@ public class FreeDrawFragment extends Fragment {
             case R.id.action_marker:
                 if (route.getPoints().size() > 2) {
                     toggle = !toggle;
-                    route.toggleMarkers(toggle);
+                    route.setMarkerVisibility(toggle);
                 }
                 return true;
             case R.id.action_clear:
@@ -272,13 +278,12 @@ public class FreeDrawFragment extends Fragment {
     private void undo() {
         //if we have a route and some points perform undo
         if (!route.getPoints().isEmpty()) {
-            MarkerPoint mk = route.getLastElement();
+            MarkerPoint mk = route.getLast();
             mk.getMarker().remove();
             route.getPoints().remove(mk);
             mk = null;
-            if (route.getPoints().size() > 1) {
-                route.setMarkerVisibility();
-            }
+
+            Log.d(TAG, "Removing marker");
             drawRoute();
         } else {
             Toast.makeText(getActivity(), "No markers added", Toast.LENGTH_SHORT).show();

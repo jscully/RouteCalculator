@@ -53,7 +53,7 @@ public class PointToPointFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
         //Get a reference to the map once it is loaded
         map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
-
+        getActivity().getActionBar().setTitle("Point Route");
         //set up the marker listeners
         setMarkerListeners(map);
 
@@ -65,12 +65,12 @@ public class PointToPointFragment extends Fragment {
                 if (route.getPoints().isEmpty()) { //if this is the first click add the point with a marker
                     Marker marker = map.addMarker(newMarker);
                     route.add(latLng, marker);
-                    route.setMarkerVisibility();
+                    route.setMarkerVisibility(toggle);
                 } else {
                     Marker marker = map.addMarker(newMarker);
-                    route.getLastElement().getMarker().setVisible(toggle);
+                    route.getLast().getMarker().setVisible(toggle);
                     route.add(latLng, marker);
-                    route.setMarkerVisibility();
+                    route.setMarkerVisibility(toggle);
                 }
                 drawRoute();
             }
@@ -199,7 +199,7 @@ public class PointToPointFragment extends Fragment {
             case R.id.action_marker:
                 if (route.getPoints().size() > 2) {
                     toggle = !toggle;
-                    route.toggleMarkers(toggle);
+                    route.setMarkerVisibility(toggle);
                 }
                 return true;
             case R.id.action_clear:
@@ -215,12 +215,12 @@ public class PointToPointFragment extends Fragment {
     private void undo() {
         //if we have a route and some points perform undo
         if (!route.getPoints().isEmpty()) {
-            MarkerPoint mk = route.getLastElement();
+            MarkerPoint mk = route.getLast();
             mk.getMarker().remove();
             route.getPoints().remove(mk);
             mk = null;
             if (route.getPoints().size() > 1) {
-                route.setMarkerVisibility();
+                route.setMarkerVisibility(toggle);
             }
             drawRoute();
         } else {

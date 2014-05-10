@@ -21,6 +21,10 @@ public abstract class Route {
 
     public abstract double calculateTotalDistance();
 
+    public abstract void setMarkerVisibility(boolean toggle);
+
+    //public abstract void toggleMarkers(boolean toggle);
+
     //Return the points linkedList
     public ArrayList<MarkerPoint> getPoints() {
         return points;
@@ -30,12 +34,26 @@ public abstract class Route {
         points.add(new MarkerPoint(latLng, marker));
     }
 
-
-    public MarkerPoint getLastElement() {
-        if (!points.isEmpty()) {
-            return points.get(points.size() - 1);
-        } else {
-            return null;
+    public MarkerPoint getLast(){
+        return points.get(points.size() -1);
+    }
+    public MarkerPoint getFirst(){
+        return points.get(0);
+    }
+    public boolean isFirst(MarkerPoint mk){
+        if(points.get(0).equals(mk)){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    public boolean isLast(MarkerPoint mk){
+        if(points.get(points.size() - 1).equals(mk)){
+            return true;
+        }
+        else{
+            return false;
         }
     }
 }

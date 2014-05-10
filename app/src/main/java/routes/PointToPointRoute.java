@@ -35,17 +35,18 @@ public class PointToPointRoute extends Route {
         return distance;
     }
 
-    public void toggleMarkers(boolean visible){
-        for(MarkerPoint markerRoute : points){
-            markerRoute.getMarker().setVisible(visible);
-        }
-        //make sure first and last markers are visible
-        setMarkerVisibility();
-    }
-
     //Method to set the first and last element in the LinkedList to display a marker
-    public void setMarkerVisibility(){
-        points.get(0).getMarker().setVisible(true);
-        points.get(points.size() - 1).getMarker().setVisible(true);
+    public void setMarkerVisibility(boolean markerVisible){
+        for (MarkerPoint m : points){
+            if (isFirst(m)) {
+                m.getMarker().setVisible(true);
+            }
+            else if (isLast(m)) {
+                m.getMarker().setVisible(true);
+            }
+            else{
+                m.getMarker().setVisible(markerVisible);
+            }
+        }
     }
 }
