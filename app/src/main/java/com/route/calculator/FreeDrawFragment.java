@@ -2,10 +2,12 @@ package com.route.calculator;
 
 import android.app.AlertDialog;
 import android.app.Fragment;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.InflateException;
@@ -20,14 +22,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -48,19 +47,16 @@ public class FreeDrawFragment extends Fragment {
     private FreeDrawRoute route;
     private double distance;
     private TextView distanceView;
-    private PolylineOptions options;
-
-    private List<Polyline> polylines = new ArrayList<Polyline>();
+    private PolylineOptions polylineOptions = new PolylineOptions();
 
     public static View view;
-    //boolean toggle : toggles the markers visible state
-    private boolean toggle = false;
     //Button object for toggle of map movable state
     private Button mapButton;
     private boolean mapMovable = true;
     private FrameLayout frameLayout;
     private Projection projection;
     private String previousEvent = null; //Variable used for ontouch event, to eliminate false event up calls
+    private Polyline line = null;
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -69,7 +65,7 @@ public class FreeDrawFragment extends Fragment {
         map = ((MapFragment) getFragmentManager().findFragmentById(R.id.freedraw_map)).getMap();
         getActivity().getActionBar().setTitle("Free Draw");
         //set up the marker listeners
-        setMarkerListeners(map);
+//        setMarkerListeners(map);
 
         distanceView = (TextView) getActivity().findViewById(R.id.free_draw_distance_view);
         frameLayout = (FrameLayout) getActivity().findViewById(R.id.fram_map);
@@ -96,7 +92,6 @@ public class FreeDrawFragment extends Fragment {
                     int x_co = Math.round(x);
                     int y_co = Math.round(y);
                     int eventaction = event.getAction();
-                    // TODO - final point gets added twice, possible check y_co and y_co before
 
                     switch (eventaction) {
                         case MotionEvent.ACTION_DOWN:
@@ -104,23 +99,17 @@ public class FreeDrawFragment extends Fragment {
                             if (previousEvent == null) {
                                 createPointOnMap(x_co, y_co);
                             }
-                            Log.d(TAG, "ACTION DOWN : " + previousEvent);
                             previousEvent = "down";
                         case MotionEvent.ACTION_MOVE:
                             // finger moves on the screen
-                                createPointOnMap(x_co, y_co);
+                            createPointOnMap(x_co, y_co);
                             previousEvent = "move";
-                            Log.d(TAG, "ACTION MOVE : " + previousEvent);
-                            Log.d(TAG, "" + x_co);
                         case MotionEvent.ACTION_UP:
                             // finger leaves the screen
                             if (previousEvent.equals("up")) {
                                 createPointOnMap(x_co, y_co);
-                                Log.d(TAG, "" + x_co);
-                                drawRoute();
                             }
                             previousEvent = "up";
-                            Log.d(TAG, "ACTION UP : " + previousEvent);
                             break;
                     }
                 }
@@ -134,36 +123,16 @@ public class FreeDrawFragment extends Fragment {
         projection = map.getProjection();
         Point x_y_points = new Point(x_co, y_co);
         LatLng latLng = map.getProjection().fromScreenLocation(x_y_points);
-        MarkerOptions newMarker = new MarkerOptions().position(latLng);
-        Marker marker = map.addMarker(newMarker);
-        route.add(latLng, marker);
+        route.add(latLng);
+        drawRoute(latLng);
     }
 
-    /**
-     * Method to redraw the entire route using Polylines
-     */
-    public void drawRoute() {
-        PolylineOptions localOptions = new PolylineOptions();
-        if (polylines != null) {
-            for (Polyline line : polylines) {
-                line.remove();
-                line = null;
-            }
-            polylines.clear();
-        }
-
-        //redraw all polylines from points ArrayList
-        for (MarkerPoint markerRoute : route.getPoints()) {
-            localOptions.add(new LatLng(markerRoute.getLat(), markerRoute.getLng()));
-            Polyline line = map.addPolyline(localOptions);
-            polylines.add(line);
-            line.setColor(Color.GREEN);
-            line.setGeodesic(true);
-            line.setVisible(true);
-        }
-
-        route.setMarkerVisibility(toggle);
-        //get the distance, and set the distance view to show distance
+    private void drawRoute(LatLng l) {
+        polylineOptions.add(l);
+        line = map.addPolyline(polylineOptions);
+        line.setColor(Color.GREEN);
+        line.setGeodesic(true);
+        line.setVisible(true);
         distance = route.calculateTotalDistance();
         distance = round(distance / 1000, 2);
         distanceView.setText(Double.toString(distance) + "km");
@@ -189,40 +158,9 @@ public class FreeDrawFragment extends Fragment {
         super.onResume();
         setRetainInstance(true);
         route = new FreeDrawRoute();
-        options = new PolylineOptions();
-        options.width(5);
         getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);     //  Fixed Portrait orientation
     }
 
-    public void setMarkerListeners(GoogleMap map) {
-        map.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
-            Marker toBeUpdated = null;
-
-            @Override
-            public void onMarkerDragStart(Marker marker) {
-                toBeUpdated = marker;
-            }
-
-            @Override
-            public void onMarkerDrag(Marker marker) {
-
-            }
-
-            @Override
-            public void onMarkerDragEnd(Marker marker) {
-                for (MarkerPoint currentMarker : route.getPoints()) {
-                    if (currentMarker.getMarker().equals(toBeUpdated)) {
-                        //Update the point in the LinkedList MarkerPoint that has changed
-                        currentMarker.setLat(marker.getPosition().latitude);
-                        currentMarker.setLng(marker.getPosition().longitude);
-                        currentMarker.setMarker(marker);
-                        drawRoute();
-                        return;
-                    }
-                }
-            }
-        });
-    }
 
     @Override
     public void onCreateOptionsMenu(
@@ -260,10 +198,7 @@ public class FreeDrawFragment extends Fragment {
                 undo();
                 return true;
             case R.id.action_marker:
-                if (route.getPoints().size() > 2) {
-                    toggle = !toggle;
-                    route.setMarkerVisibility(toggle);
-                }
+                //no toggle marker function as of yet
                 return true;
             case R.id.action_clear:
                 if (route.getPoints().size() >= 1) {
@@ -276,17 +211,8 @@ public class FreeDrawFragment extends Fragment {
     }
 
     private void undo() {
-        //if we have a route and some points perform undo
-        if (!route.getPoints().isEmpty()) {
-            MarkerPoint mk = route.getLast();
-            mk.getMarker().remove();
-            route.getPoints().remove(mk);
-            mk = null;
-
-            Log.d(TAG, "Removing marker");
-            drawRoute();
-        } else {
-            Toast.makeText(getActivity(), "No markers added", Toast.LENGTH_SHORT).show();
+        if(route.getPoints().size() > 0){
+            new Undo().execute();
         }
     }
 
@@ -297,16 +223,11 @@ public class FreeDrawFragment extends Fragment {
     }
 
     private void clearRoute() {
-        for (Polyline p : polylines) {
-            p.remove();
-            p = null;
-        }
-        polylines.clear();
+        polylineOptions.getPoints().removeAll(polylineOptions.getPoints());
+        map.clear();
         for (MarkerPoint m : route.getPoints()) {
-            m.removeInstance();
             m = null;
         }
-        map.clear();
         route.getPoints().clear();
         distanceView.setText("0.0");
     }
@@ -326,4 +247,44 @@ public class FreeDrawFragment extends Fragment {
     }
 
 
+    //AsyncTask class used to undo points from the map.
+    private class Undo extends AsyncTask<Void, Void, Void> {
+        private ProgressDialog progDialog;
+
+        public Undo(){
+            progDialog = new ProgressDialog(getActivity());
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progDialog.setMessage("Loading...");
+            progDialog.show();
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            if(progDialog.isShowing()){
+                progDialog.dismiss();
+            }
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            if (route.getPoints().size() > 0) {
+                route.getPoints().remove(route.getLast());
+
+                //I have removed the last point from both polylines list and Route list.
+                //Now clear polyline options, clear the map and redraw the route.
+                polylineOptions = null;
+                map.clear();
+                polylineOptions = new PolylineOptions();
+                for (MarkerPoint m : route.getPoints()) {
+                    drawRoute(new LatLng(m.getLat(), m.getLng()));
+                }
+            }
+            return null;
+        }
+    }
 }

@@ -33,6 +33,9 @@ public abstract class Route {
     public void add(LatLng latLng, Marker marker) {
         points.add(new MarkerPoint(latLng, marker));
     }
+    public void add(LatLng latLng){
+        points.add(new MarkerPoint(latLng));
+    }
 
     public MarkerPoint getLast(){
         return points.get(points.size() -1);

@@ -27,8 +27,6 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.List;
 
 import models.MarkerPoint;
 import routes.PointToPointRoute;
@@ -43,10 +41,10 @@ public class PointToPointFragment extends Fragment {
     private double distance;
     private TextView distanceView;
     private PolylineOptions options;
-    private List<Polyline> polylines = new ArrayList<Polyline>();
     public static View view;
     //boolean toggle : toggles the markers visible state
     private boolean toggle = false;
+    private Polyline polyline =  null;
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -72,7 +70,7 @@ public class PointToPointFragment extends Fragment {
                     route.add(latLng, marker);
                     route.setMarkerVisibility(toggle);
                 }
-                drawRoute();
+                drawRoute(latLng);
             }
         });
         distanceView = (TextView) getActivity().findViewById(R.id.distance_view);
@@ -82,28 +80,22 @@ public class PointToPointFragment extends Fragment {
     /**
      * Method to redraw the entire route using Polylines
      */
-    public void drawRoute() {
-        //Remove all current polylines
-        PolylineOptions localOptions = new PolylineOptions();
-        for (Polyline line : polylines) {
-            line.remove();
-            line = null;
-        }
-        polylines.clear();
+    public void drawRoute(LatLng l) {
+        options.add(l);
+        polyline = map.addPolyline(options);
 
-        //redraw all polylines from points LinkedList
-        for (MarkerPoint markerRoute : route.getPoints()) {
-            localOptions.add(new LatLng(markerRoute.getLat(), markerRoute.getLng()));
-            Polyline line = map.addPolyline(localOptions);
-            polylines.add(line);
-            line.setColor(Color.GREEN);
-            line.setGeodesic(true);
-            line.setVisible(true);
-        }
+        polyline.setColor(Color.GREEN);
+        polyline.setGeodesic(true);
+        polyline.setVisible(true);
+
         //get the distance, and set the distance view to show distance
         distance = route.calculateTotalDistance();
         distance = round(distance / 1000, 2);
         distanceView.setText(Double.toString(distance) + "km");
+        //set the visibility
+        if (route.getPoints().size() > 1) {
+            route.setMarkerVisibility(toggle);
+        }
     }
 
     @Override
@@ -153,7 +145,7 @@ public class PointToPointFragment extends Fragment {
                         currentMarker.setLat(marker.getPosition().latitude);
                         currentMarker.setLng(marker.getPosition().longitude);
                         currentMarker.setMarker(marker);
-                        drawRoute();
+                        drawRoute(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude));
                         return;
                     }
                 }
@@ -214,15 +206,19 @@ public class PointToPointFragment extends Fragment {
 
     private void undo() {
         //if we have a route and some points perform undo
+        //TODO - Need to redo implementation of undo
         if (!route.getPoints().isEmpty()) {
             MarkerPoint mk = route.getLast();
+            //Specifically remove the marker
             mk.getMarker().remove();
             route.getPoints().remove(mk);
             mk = null;
-            if (route.getPoints().size() > 1) {
-                route.setMarkerVisibility(toggle);
+            options = null;
+            map.clear();
+            options = new PolylineOptions();
+            for(MarkerPoint m : route.getPoints()){
+                drawRoute(new LatLng(m.getLat(), m.getLng()));
             }
-            drawRoute();
         } else {
             Toast.makeText(getActivity(), "No markers added", Toast.LENGTH_SHORT).show();
         }
@@ -235,15 +231,11 @@ public class PointToPointFragment extends Fragment {
     }
 
     private void clearRoute() {
-        for (Polyline p : polylines) {
-            p.remove();
-            p = null;
-        }
-        polylines.clear();
         for (MarkerPoint m : route.getPoints()) {
             m.removeInstance();
             m = null;
         }
+        options = new PolylineOptions();
         map.clear();
         route.getPoints().clear();
         distanceView.setText("0.0");

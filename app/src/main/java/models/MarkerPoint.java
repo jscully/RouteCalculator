@@ -24,6 +24,11 @@ public class MarkerPoint {
         this.lng = lng;
         this.marker = marker;
     }
+    public MarkerPoint(LatLng l){
+        this.lat = l.latitude;
+        this.lng = l.longitude;
+        //no marker needed
+    }
 
     //Method to set this class instance to null along with Reference to marker
     //calls marker remove and sets to null

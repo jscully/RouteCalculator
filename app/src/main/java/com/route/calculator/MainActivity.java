@@ -1,5 +1,6 @@
 package com.route.calculator;
 
+import android.app.ActivityManager;
 import android.app.FragmentManager;
 import android.content.res.Configuration;
 import android.support.v4.app.ActionBarDrawerToggle;
@@ -82,6 +83,10 @@ public class MainActivity extends ActionBarActivity {
             fragmentTransaction.add(R.id.fragment_container, homeFragment);
             fragmentTransaction.commit();
         }
+
+        ActivityManager activityManager = (ActivityManager) getApplicationContext().getSystemService(ACTIVITY_SERVICE);
+        int memory = activityManager.getMemoryClass();
+        Toast.makeText(this, "Memory : " + memory, Toast.LENGTH_LONG).show();
     }
 
     public void populateNavigationItems(){

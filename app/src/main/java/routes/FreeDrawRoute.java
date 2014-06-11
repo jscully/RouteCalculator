@@ -9,13 +9,13 @@ import models.MarkerPoint;
  * Created by joseph on 02/05/14.
  */
 public class FreeDrawRoute extends Route {
+    private MarkerPoint p = null;
+    private MarkerPoint p1 = null;
 
     @Override
     public double calculateTotalDistance() {
         float currentDistance = 0;
         distance = 0;
-        MarkerPoint p = null;
-        MarkerPoint p1 = null;
         for(MarkerPoint point : points){
             if(!points.get(points.size() - 1).equals(point)){ // loop through the list until we are at the last point.
                 p = points.get(points.indexOf(point));
