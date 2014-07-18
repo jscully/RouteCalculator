@@ -3,12 +3,18 @@ package routes;
 import android.location.Location;
 import android.util.Log;
 
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.route.calculator.PointToPointFragment;
+
 import models.MarkerPoint;
 
 /**
  * Created by joseph on 16/03/14.
  */
 public class PointToPointRoute extends Route {
+    static final String TAG = "TAG";
 
     public PointToPointRoute(){
 
@@ -31,13 +37,20 @@ public class PointToPointRoute extends Route {
                 distance = Math.round(currentDistance);
             }
         }
-        Log.d("TAG", "Returning the distance : " + distance);
         return distance;
     }
 
     //Method to set the first and last element in the LinkedList to display a marker
     public void setMarkerVisibility(boolean markerVisible){
+        Log.d(TAG, "Points size: " + points.size());
+        //first remove all markers. Then add them to the map again. This is for cases that undo()
+        // has been called, the markers do not exist on the map so setVisible does not display the marker on the map.
+        for(MarkerPoint mk : points){
+            mk.getMarker().remove();
+        }
         for (MarkerPoint m : points){
+            Marker marker = PointToPointFragment.map.addMarker(new MarkerOptions().position(new LatLng(m.getLat(), m.getLng())));
+            m.setMarker(marker);
             if (isFirst(m)) {
                 m.getMarker().setVisible(true);
             }
@@ -48,5 +61,6 @@ public class PointToPointRoute extends Route {
                 m.getMarker().setVisible(markerVisible);
             }
         }
+        Log.d(TAG, "----------------------------------------------------------------------");
     }
 }

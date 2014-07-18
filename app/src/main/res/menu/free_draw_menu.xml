@@ -7,27 +7,15 @@
         android:title="@string/action_search"
         app:showAsAction="always"/>
 
-    <!-- Marker -->
-    <item android:id="@+id/action_marker"
-        android:icon="@drawable/ic_marker"
-        android:title="@string/action_marker_title"/>
-
-    <!-- save -->
-    <item android:id="@+id/action_save"
-        android:icon="@drawable/ic_action_save"
-        android:title="@string/action_save_title"
-        app:showAsAction="always"/>
-
-    <!-- Undo -->
-    <item android:id="@+id/action_undo"
-        android:icon="@drawable/ic_action_undo"
-        android:title="@string/action_undo_title"
-        app:showAsAction="ifRoom"/>
-
     <!-- Clear map features -->
     <item android:id="@+id/action_clear"
         android:title="@string/action_clear_title"
         android:icon="@drawable/ic_action_cancel"
-        />
+        app:showAsAction="always"/>
+
+    <!-- save -->
+    <item android:id="@+id/action_save"
+        android:icon="@drawable/ic_action_save"
+        android:title="@string/action_save_title"/>
 
 </menu>

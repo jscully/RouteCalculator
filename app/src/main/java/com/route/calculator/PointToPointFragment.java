@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.InflateException;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -36,7 +37,7 @@ import routes.PointToPointRoute;
  */
 public class PointToPointFragment extends Fragment {
     static final String TAG = "TAG";
-    private GoogleMap map;
+    public static GoogleMap map;
     private PointToPointRoute route;
     private double distance;
     private TextView distanceView;
@@ -59,17 +60,8 @@ public class PointToPointFragment extends Fragment {
         map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
-                MarkerOptions newMarker = new MarkerOptions().position(latLng);
-                if (route.getPoints().isEmpty()) { //if this is the first click add the point with a marker
-                    Marker marker = map.addMarker(newMarker);
-                    route.add(latLng, marker);
-                    route.setMarkerVisibility(toggle);
-                } else {
-                    Marker marker = map.addMarker(newMarker);
-                    route.getLast().getMarker().setVisible(toggle);
-                    route.add(latLng, marker);
-                    route.setMarkerVisibility(toggle);
-                }
+                Marker marker = map.addMarker(new MarkerOptions().position(latLng));
+                route.add(latLng, marker);
                 drawRoute(latLng);
             }
         });
@@ -81,6 +73,7 @@ public class PointToPointFragment extends Fragment {
      * Method to redraw the entire route using Polylines
      */
     public void drawRoute(LatLng l) {
+
         options.add(l);
         polyline = map.addPolyline(options);
 
@@ -93,9 +86,7 @@ public class PointToPointFragment extends Fragment {
         distance = round(distance / 1000, 2);
         distanceView.setText(Double.toString(distance) + "km");
         //set the visibility
-        if (route.getPoints().size() > 1) {
-            route.setMarkerVisibility(toggle);
-        }
+        route.setMarkerVisibility(toggle);
     }
 
     @Override
@@ -205,21 +196,20 @@ public class PointToPointFragment extends Fragment {
     }
 
     private void undo() {
-        //if we have a route and some points perform undo
-        //TODO - Need to redo implementation of undo
         if (!route.getPoints().isEmpty()) {
-            MarkerPoint mk = route.getLast();
-            //Specifically remove the marker
+            MarkerPoint mk = route.getPoints().get(route.getPoints().size() - 1);
             mk.getMarker().remove();
             route.getPoints().remove(mk);
             mk = null;
             options = null;
             map.clear();
             options = new PolylineOptions();
+            options.width(5);
             for(MarkerPoint m : route.getPoints()){
                 drawRoute(new LatLng(m.getLat(), m.getLng()));
             }
-        } else {
+        }
+        else {
             Toast.makeText(getActivity(), "No markers added", Toast.LENGTH_SHORT).show();
         }
     }
@@ -236,6 +226,7 @@ public class PointToPointFragment extends Fragment {
             m = null;
         }
         options = new PolylineOptions();
+        options.width(5);
         map.clear();
         route.getPoints().clear();
         distanceView.setText("0.0");

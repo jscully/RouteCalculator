@@ -6,6 +6,7 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.net.ConnectivityManager;
 import android.os.AsyncTask;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -50,7 +51,7 @@ public class LocationSearchAsyncTask extends AsyncTask<String, Integer, Address>
                 e.printStackTrace();
             }
             //if an address is available return it, making it available to postExecute
-            if (addresses != null) {
+            if (addresses.size() > 0) {
                 return addresses.get(0);
             } else {
                 return null;
@@ -86,13 +87,18 @@ public class LocationSearchAsyncTask extends AsyncTask<String, Integer, Address>
      * @param address
      */
     private void moveMap(Address address) {
-        CameraPosition newPlace =
-                new CameraPosition.Builder().target(
-                        new LatLng(address.getLatitude(), address.getLongitude())
-                ).zoom(15.5f)
-                        .bearing(8)
-                        .tilt(0)
-                        .build();
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(newPlace));
+        if(address != null){
+            CameraPosition newPlace =
+                    new CameraPosition.Builder().target(
+                            new LatLng(address.getLatitude(), address.getLongitude())
+                    ).zoom(15.5f)
+                            .bearing(8)
+                            .tilt(0)
+                            .build();
+            map.animateCamera(CameraUpdateFactory.newCameraPosition(newPlace));
+        }
+        else{
+            Toast.makeText(context, "Cannot find location."  , Toast.LENGTH_LONG).show();
+        }
     }
 }

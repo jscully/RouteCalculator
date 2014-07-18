@@ -9,7 +9,6 @@ import android.graphics.Color;
 import android.graphics.Point;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.InflateException;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -27,13 +26,13 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.List;
 
 import models.MarkerPoint;
 import routes.FreeDrawRoute;
@@ -86,6 +85,16 @@ public class FreeDrawFragment extends Fragment {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (mapMovable) {
+                    if(!route.getPoints().isEmpty()){
+                        // I only need to set the first marker once.
+                        MarkerOptions m = new MarkerOptions().position(new LatLng(route.getFirst().getLat(),
+                                route.getFirst().getLng()));
+
+                        Marker marker = map.addMarker(m);
+
+                        route.getFirst().setMarker(marker);
+                    }
+
                     float x = event.getX();
                     float y = event.getY();
 
@@ -113,10 +122,33 @@ public class FreeDrawFragment extends Fragment {
                             break;
                     }
                 }
+                setMarkers();
                 return mapMovable;
             }
         });
         setHasOptionsMenu(true);
+    }
+
+
+    //Method to set the last point on the map to have marker
+    private void setMarkers(){
+        //first remove the previous last marker
+        if(route.getLast().getMarker() != null){
+            MarkerPoint mk = route.getLast();
+            //Specifically remove the marker
+            mk.getMarker().remove();
+            route.getPoints().remove(mk);
+            mk = null;
+            map.clear();
+        }
+
+        MarkerOptions m = new MarkerOptions().position(new LatLng(route.getLast().getLat(),
+                route.getLast().getLng()));
+
+        Marker marker = map.addMarker(m);
+
+        route.getLast().setMarker(marker);
+
     }
 
     private void createPointOnMap(int x_co, int y_co) {
@@ -165,7 +197,7 @@ public class FreeDrawFragment extends Fragment {
     @Override
     public void onCreateOptionsMenu(
             Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.map_action_bar, menu);
+        inflater.inflate(R.menu.free_draw_menu, menu);
     }
 
     @Override
@@ -263,28 +295,27 @@ public class FreeDrawFragment extends Fragment {
         }
 
         @Override
+        protected Void doInBackground(Void... voids) {
+            if (route.getPoints().size() > 0) {
+                route.getPoints().remove(route.getLast());
+            }
+            return null;
+        }
+
+        //TODO - revisit this operation. Maybe use activity.runOnUIThread of Handler.post to edit
+        //UI
+        @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
             if(progDialog.isShowing()){
                 progDialog.dismiss();
             }
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            if (route.getPoints().size() > 0) {
-                route.getPoints().remove(route.getLast());
-
-                //I have removed the last point from both polylines list and Route list.
-                //Now clear polyline options, clear the map and redraw the route.
-                polylineOptions = null;
-                map.clear();
-                polylineOptions = new PolylineOptions();
-                for (MarkerPoint m : route.getPoints()) {
-                    drawRoute(new LatLng(m.getLat(), m.getLng()));
-                }
+            polylineOptions = null;
+            map.clear();
+            polylineOptions = new PolylineOptions();
+            for (MarkerPoint m : route.getPoints()) {
+                drawRoute(new LatLng(m.getLat(), m.getLng()));
             }
-            return null;
         }
     }
 }
