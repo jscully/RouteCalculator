@@ -3,10 +3,8 @@ package com.route.calculator;
 import android.app.AlertDialog;
 import android.app.Fragment;
 import android.content.DialogInterface;
-import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.InflateException;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -26,8 +24,11 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.HashMap;
+import java.util.Map;
 
 import models.MarkerPoint;
 import routes.PointToPointRoute;
@@ -41,32 +42,55 @@ public class PointToPointFragment extends Fragment {
     private PointToPointRoute route;
     private double distance;
     private TextView distanceView;
-    private PolylineOptions options;
+    private PolylineOptions polylineOptions;
     public static View view;
-    //boolean toggle : toggles the markers visible state
-    private boolean toggle = false;
     private Polyline polyline =  null;
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        //Get a reference to the map once it is loaded
         map = ((MapFragment) getFragmentManager().findFragmentById(R.id.map)).getMap();
         getActivity().getActionBar().setTitle("Point Route");
-        //set up the marker listeners
         setMarkerListeners(map);
+
+        route = new PointToPointRoute();
+        polylineOptions = new PolylineOptions();
+        polylineOptions.width(5);
 
         //onclick listener for the map
         map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
-                Marker marker = map.addMarker(new MarkerOptions().position(latLng));
-                route.add(latLng, marker);
+                addMarkerPoint(latLng);
                 drawRoute(latLng);
             }
         });
+        // Restoring the markers on configuration changes
+        if(savedInstanceState != null){
+            if(savedInstanceState.containsKey("markers")){
+                HashMap<String, MarkerPoint> pointList = (HashMap<String, MarkerPoint>) savedInstanceState.getSerializable("markers");
+
+                for(Map.Entry<String, MarkerPoint> entry : pointList.entrySet()){
+                    MarkerPoint mk = entry.getValue();
+
+                    LatLng latLng = new LatLng(mk.getLat(), mk.getLng());
+
+                    addMarkerPoint(latLng);
+
+                    drawRoute(latLng);
+                }
+            }
+        }
+
         distanceView = (TextView) getActivity().findViewById(R.id.distance_view);
         setHasOptionsMenu(true);
+    }
+
+    private void addMarkerPoint(LatLng latLng){
+        Marker marker = map.addMarker(new MarkerOptions().position(latLng));
+        marker.setDraggable(true);
+        MarkerPoint markerPoint = new MarkerPoint(latLng, marker);
+        route.add(marker.getId(), markerPoint);
     }
 
     /**
@@ -74,8 +98,8 @@ public class PointToPointFragment extends Fragment {
      */
     public void drawRoute(LatLng l) {
 
-        options.add(l);
-        polyline = map.addPolyline(options);
+        polylineOptions.add(l);
+        polyline = map.addPolyline(polylineOptions);
 
         polyline.setColor(Color.GREEN);
         polyline.setGeodesic(true);
@@ -85,8 +109,6 @@ public class PointToPointFragment extends Fragment {
         distance = route.calculateTotalDistance();
         distance = round(distance / 1000, 2);
         distanceView.setText(Double.toString(distance) + "km");
-        //set the visibility
-        route.setMarkerVisibility(toggle);
     }
 
     @Override
@@ -108,19 +130,24 @@ public class PointToPointFragment extends Fragment {
     public void onResume() {
         super.onResume();
         setRetainInstance(true);
-        route = new PointToPointRoute();
-        options = new PolylineOptions();
-        options.width(5);
-        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);     //  Fixed Portrait orientation
+    }
+
+
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+
+        outState.putSerializable("markers", (Serializable) route.getPoints());
+
+        super.onSaveInstanceState(outState);
     }
 
     public void setMarkerListeners(GoogleMap map) {
         map.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
-            Marker toBeUpdated = null;
 
             @Override
             public void onMarkerDragStart(Marker marker) {
-                toBeUpdated = marker;
+
             }
 
             @Override
@@ -130,15 +157,8 @@ public class PointToPointFragment extends Fragment {
 
             @Override
             public void onMarkerDragEnd(Marker marker) {
-                for (MarkerPoint currentMarker : route.getPoints()) {
-                    if (currentMarker.getMarker().equals(toBeUpdated)) {
-                        //Update the point in the LinkedList MarkerPoint that has changed
-                        currentMarker.setLat(marker.getPosition().latitude);
-                        currentMarker.setLng(marker.getPosition().longitude);
-                        currentMarker.setMarker(marker);
-                        drawRoute(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude));
-                        return;
-                    }
+                if (route.getPoints().containsKey(marker.getId())) {
+                    Toast.makeText(getActivity().getBaseContext(), "We have a match", Toast.LENGTH_LONG).show();
                 }
             }
         });
@@ -177,59 +197,29 @@ public class PointToPointFragment extends Fragment {
                 alertD.show();
                 return true;
             case R.id.action_undo:
-                undo();
                 return true;
             case R.id.action_marker:
-                if (route.getPoints().size() > 2) {
-                    toggle = !toggle;
-                    route.setMarkerVisibility(toggle);
-                }
+
                 return true;
             case R.id.action_clear:
-                if (route.getPoints().size() >= 1) {
-                    //I want to remove everything from the map.
-                    clearRoute();
-                }
+                clearMap();
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    private void undo() {
-        if (!route.getPoints().isEmpty()) {
-            MarkerPoint mk = route.getPoints().get(route.getPoints().size() - 1);
-            mk.getMarker().remove();
-            route.getPoints().remove(mk);
-            mk = null;
-            options = null;
-            map.clear();
-            options = new PolylineOptions();
-            options.width(5);
-            for(MarkerPoint m : route.getPoints()){
-                drawRoute(new LatLng(m.getLat(), m.getLng()));
-            }
-        }
-        else {
-            Toast.makeText(getActivity(), "No markers added", Toast.LENGTH_SHORT).show();
-        }
+    /**
+     * Remove polylines + markers, reset points
+     */
+    private void clearMap(){
+        polylineOptions = new PolylineOptions();
+        route = new PointToPointRoute();
+        map.clear();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        clearRoute();
-    }
-
-    private void clearRoute() {
-        for (MarkerPoint m : route.getPoints()) {
-            m.removeInstance();
-            m = null;
-        }
-        options = new PolylineOptions();
-        options.width(5);
-        map.clear();
-        route.getPoints().clear();
-        distanceView.setText("0.0");
     }
 
     /**

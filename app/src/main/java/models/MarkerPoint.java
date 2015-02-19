@@ -6,38 +6,24 @@ import com.google.android.gms.maps.model.Marker;
 /**
  * Created by joseph on 19/03/14.
  */
-public class MarkerPoint {
+public class MarkerPoint implements java.io.Serializable{
     private double lat;
     private double lng;
-    private Marker marker;
-
-    public MarkerPoint(LatLng l, Marker marker){
-        this.lat = l.latitude;
-        this.lng = l.longitude;
-        this.marker = marker;
-        this.marker.setVisible(false);
-        this.marker.setDraggable(true);
-    }
+    private transient Marker marker = null;
 
     public MarkerPoint(double lat, double lng, Marker marker){
         this.lat = lat;
         this.lng = lng;
         this.marker = marker;
     }
-    public MarkerPoint(LatLng l){
-        this.lat = l.latitude;
-        this.lng = l.longitude;
-        //no marker needed
+
+    public MarkerPoint(LatLng latLng, Marker marker){
+        this.lng = latLng.longitude;
+        this.lat = latLng.latitude;
+        this.marker = marker;
     }
 
-    //Method to set this class instance to null along with Reference to marker
-    //calls marker remove and sets to null
-    public void removeInstance(){
-        marker.remove();
-        marker = null;
-    }
-
-    public double getLat() {
+    public double getLat(){
         return lat;
     }
 

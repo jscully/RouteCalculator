@@ -160,10 +160,6 @@ public class MainActivity extends ActionBarActivity {
                     fragment = new PointToPointFragment();
                     Log.d("TAG", "Maps");
                     break;
-                case 2:
-                    fragment = new FreeDrawFragment();
-                    Log.d("TAG", "Maps");
-                    break;
                 default:
                     fragment = new HomeFragment();
                     Log.d("TAG", "Default");;
